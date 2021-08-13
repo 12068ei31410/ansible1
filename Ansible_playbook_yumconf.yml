@@ -1,0 +1,15 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Add minrate=1 to yum.conf
+    ansible.builtin.lineinfile:
+      path: /etc/yum.conf
+      regexp: '^minrate='
+      line: minrate=1
+  - name: Add timeout=300 to yum.conf
+    ansible.builtin.lineinfile:
+      path: /etc/yum.conf
+      regexp: '^timeout='
+      line: timeout=300

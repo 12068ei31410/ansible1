@@ -1,0 +1,14 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Unregister
+    shell: yum clean all; subscription-manager unregister; subscription-manager clean
+  - name: Remove old satellite packages
+    yum:
+      name: "{{ packages }}"
+      state: absent
+    vars:
+      packages:
+      - katello-ca-consumer-chs-l-satellite.* 

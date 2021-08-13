@@ -1,0 +1,56 @@
+---
+- hosts: adhoc # 150.125.133.53 - chs-l-rhel7-uefi
+  remote_user: root
+
+  tasks:
+
+  - name: Ensure AIDE is installed
+    package:
+      name: aide
+      state: present
+
+  - name: Pre-checks
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+      owner: root
+      group: root
+    with_items:
+      - /root/scripts
+
+  - name: Copy homegrown scripts
+    copy:
+      src: "{{ item }}"
+      dest: /root/scripts
+      mode: '0700'
+      owner: root
+      group: root
+    with_items:
+      - /etc/ansible/files/scripts/aide_verbose5.sh
+      - /etc/ansible/files/scripts/update_aide.sh
+
+  - name: Copy aide cron.daily script
+    copy:
+      src: /etc/ansible/files/scripts/aide
+      dest: /etc/cron.daily
+      mode: '0700'
+      owner: root
+      group: root
+
+  - cron:
+      name: Update AIDE DB
+      minute: "0"
+      hour: "03"
+      day: "28"
+      user: root
+      job: "/root/scripts/update_aide.sh >/dev/null 2>/dev/null"
+        
+  - name: Create first AIDE DB
+    shell: /root/scripts/update_aide.sh
+    register: result
+    failed_when:
+      - result.rc != 0
+
+  - debug: var=result.stdout_lines
+

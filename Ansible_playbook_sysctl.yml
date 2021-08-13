@@ -1,0 +1,49 @@
+---
+- hosts: adhoc 
+  remote_user: root
+
+  tasks:
+
+  - name: Verify directories
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+      owner: root
+      group: root
+    with_items:
+      - /etc/sysctl.d
+
+  - name: Copy RHEL6 /etc/sysctl.conf
+    copy:
+      src: "{{ item }}"
+      dest: /etc/
+      mode: '0644'
+      owner: root
+      group: root
+    with_items:
+      - /etc/ansible/templates/rhel6/sysctl.conf
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+
+  - name: Copy RHEL7 /etc/sysctl.conf
+    copy:
+      src: "{{ item }}"
+      dest: /etc/
+      mode: '0644'
+      owner: root
+      group: root
+    with_items:
+      - /etc/ansible/templates/rhel7/sysctl.conf
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+
+  - name: Update with new settings
+    shell: sysctl --system
+    register: result
+    failed_when:
+      - result.rc != 0
+
+  - debug: var=result.stdout_lines

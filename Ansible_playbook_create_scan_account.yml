@@ -1,0 +1,19 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Create 'scanner.ryall' group
+    group:
+      name: scanner.ryall
+      state: present
+  - name: Create 'scanner.ryall' user
+    user:
+      name: scanner.ryall
+      shell: /bin/bash
+      home: /home/scanner.ryall
+      comment:  "ACAS scan account"
+      group: scanner.ryall
+      groups: wheel
+      append: yes
+      password: $6$gettingsaltyover$HLJ/n5tVFHAsCrXi079qlm27D.sRL7F7z/zLGA7M0F2jdKOUkuwSqQ7lC4rLLhc0Flb0JbxRxw0VkU8qPAbfk.

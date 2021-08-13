@@ -1,0 +1,9 @@
+---
+- hosts: chs-l-ebdl-01
+  remote_user: root
+
+  tasks:
+  - name: Run scan.
+    shell: /usr/local/etc/stig/runscap/results_file_oscap-rh7.sh
+    async: 900
+    poll: 15

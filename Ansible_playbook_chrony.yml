@@ -1,0 +1,22 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Copy files...
+    copy:
+      src: /etc/ansible/templates/rhel7/chrony.conf
+      dest: /etc/chrony.conf
+      mode: 0644
+      owner: root
+      group: root
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Restart chrony
+    systemd:
+      name: chronyd
+      state: restarted
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"

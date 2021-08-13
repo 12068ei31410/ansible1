@@ -1,0 +1,12 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Copying sudoers.d/*
+    copy:
+      src: /etc/sudoers.d/*
+      dest: /etc/sudoers/
+      mode: 0440
+      owner: root
+      group: root

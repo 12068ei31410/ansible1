@@ -1,0 +1,20 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Copying file(s)...
+    ansible.builtin.copy:
+      src: /etc/selinux/targeted/contexts/users/unconfined_u
+      dest: /etc/selinux/targeted/contexts/users/staff_u
+      mode: 0644
+      owner: root
+      group: root
+      remote_src: yes
+      backup: yes
+  - name: Set semanage
+    command: semanage login -m -S targeted -s "staff_u"  __default__
+  - name: Check semanage
+    shell: semanage login -l
+    register: stuff
+  - debug: var=stuff.stdout_lines

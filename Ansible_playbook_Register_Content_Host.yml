@@ -1,0 +1,53 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Create/Ensure Dir structure
+    file:
+      path: /home/ansible
+      state: directory
+      mode: '0700'
+      owner: root
+      group: root
+  - name: Pull down katello-ca
+    get_url:
+      url: https://<site>.mil/pub/katello-ca-consumer-latest.noarch.rpm
+      dest: /home/ansible/katello-ca-consumer-latest.noarch.rpm
+      validate_certs: no
+  - name: Install katello-ca
+    yum:
+      name: /home/ansible/katello-ca-consumer-latest.noarch.rpm
+      state: present
+      disable_gpg_check: yes
+  - name: Register to satellite - RHEL6
+    redhat_subscription:
+      state: present
+      activationkey: "RHEL 6"
+      org_id: "12c7ad7d-26e5-47e1-af0b-eda90f16d739"
+      auto_attach: true
+    when:
+      - ansible_facts['distribution']  == "RedHat" or ansible_facts['distribution']  == "CentOS"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Register to satellite - RHEL7
+    redhat_subscription:
+      state: present
+      activationkey: "RHEL 7"
+      org_id: "12c7ad7d-26e5-47e1-af0b-eda90f16d739"
+      auto_attach: true
+    when:
+      - ansible_facts['distribution']  == "RedHat" or ansible_facts['distribution']  == "CentOS"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Register to satellite - RHEL8
+    redhat_subscription:
+      state: present
+      activationkey: "RHEL 8"
+      org_id: "12c7ad7d-26e5-47e1-af0b-eda90f16d739"
+      auto_attach: true
+    when:
+      - ansible_facts['distribution']  == "RedHat" or ansible_facts['distribution']  == "CentOS"
+      - ansible_facts['distribution_major_version'] == "8"
+  - name: Install katello-agent
+    yum:
+      name: ['katello-agent', 'katello-host-tools']
+      state: latest

@@ -1,0 +1,20 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: stop nessusd
+    service:
+      name: nessusd
+      state: stopped
+  - name: remove files
+    file:
+      path: '{{ item.path }}'
+      state: absent
+    with_items:
+      - /opt/nessus/lib/nessus/plugins
+      - /opt/nessus/var/nessus/.plugin_feed_info.inc
+  - name: start nessusd
+    service:
+      name: nessusd
+      state: started

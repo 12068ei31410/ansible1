@@ -1,0 +1,20 @@
+---
+- hosts: all
+  remote_user: root
+#  gather_facts: no
+
+  tasks:
+  - name: Copy file
+    copy:
+      src: /etc/ansible/templates/krb5.conf
+      dest: /etc/krb5.conf
+      mode: 0644
+      owner: root
+      group: root
+#  - name: Copy file 2
+#    copy:
+#      src: /etc/ansible/templates/hosts.deny
+#      dest: /etc/hosts.deny
+#      mode: 0644
+#      owner: root
+#      group: root

@@ -1,0 +1,91 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Create/Ensure Dir structure
+    file:
+      path: /home/ansible
+      state: directory
+      mode: '0700'
+      owner: root
+      group: root
+  - name: Get files for RHEL6
+    copy:
+      src: /etc/ansible/files/NessusAgent/CM-259494-NessusAgent-8.2.2-es6.x86_64.rpm
+      dest: /home/ansible/CM-259494-NessusAgent-8.2.2-es6.x86_64.rpm
+      mode: 0700
+      owner: root
+      group: root
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Install Nessus Agent rpm RHEL6
+    yum:
+      name: /home/ansible/CM-259494-NessusAgent-8.2.2-es6.x86_64.rpm
+      state: present
+      disable_gpg_check: yes
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Open ports RHEL6
+    iptables:
+      chain: INPUT
+      destination_port: 8934
+      jump: ACCEPT
+      protocol: tcp
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Start Nessus Agent RHEL 6
+    service:
+      name: nessusagent
+      state: started
+      enabled: yes
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Get files for RHEL7
+    copy:
+      src: /etc/ansible/files/NessusAgent/CM-259493-NessusAgent-8.2.2-es7.x86_64.rpm
+      dest: /home/ansible/CM-259493-NessusAgent-8.2.2-es7.x86_64.rpm
+      mode: 0700
+      owner: root
+      group: root
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Install Nessus Agent rpm RHEL7
+    yum:
+      name: /home/ansible/CM-259493-NessusAgent-8.2.2-es7.x86_64.rpm
+      state: present
+      disable_gpg_check: yes
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Open ports RHEL7
+    firewalld:
+      port: "{{ item }}"
+      permanent: yes
+      state: enabled
+      immediate: true
+    with_items:
+      - 8934/tcp
+      - 8834/tcp
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Start nessusagent rhel7
+    systemd:
+      name: nessusagent
+      state: started
+      enabled: yes
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Disable auto-updates ui
+    command: /opt/nessus_agent/sbin/nessuscli fix --set auto_update_ui=no
+  - name: Disable auto-updates feed
+    command: /opt/nessus_agent/sbin/nessuscli fix --set agent_updates_from_feed=no
+  - name: Link nessus agent to manager
+    command: /opt/nessus_agent/sbin/nessuscli agent link --host=drdte-nessmgr --port=8934 --key=56441517580b7a9ffc8b9d90c5e1c7bc6f785d95c99ee9e99ba0dc59ab765046

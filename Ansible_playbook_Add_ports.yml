@@ -1,0 +1,19 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Open ports RHEL6
+    iptables:
+      chain: INPUT
+      destination_port: 5500
+      jump: ACCEPT
+      protocol: udp
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Open ports RHEL7
+    shell: firewall-cmd --zone=public --permanent --add-port=5500/udp
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"

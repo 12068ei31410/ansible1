@@ -1,0 +1,93 @@
+---
+- hosts: adhoc 
+  remote_user: root
+
+  tasks:
+
+  - name: Ensure rsyslog is installed
+    package:
+      name: rsyslog
+      state: present
+
+  - name: Verify directories
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+      owner: root
+      group: root
+    with_items:
+      - /etc/rsyslog.d
+
+  - name: Copy RHEL6 /etc/rsyslog.conf
+    copy:
+      src: "{{ item }}"
+      dest: /etc/rsyslog.conf
+      mode: '0640'
+      owner: root
+      group: root
+    with_items:
+      - /etc/ansible/templates/rhel6/rsyslog.conf
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+
+  - name: Copy RHEL7 /etc/rsyslog.conf
+    copy:
+      src: "{{ item }}"
+      dest: /etc/rsyslog.conf
+      mode: '0640'
+      owner: root
+      group: root
+    with_items:
+      - /etc/ansible/templates/rhel7/rsyslog.conf
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+
+  - name: Copy RHEL7 /etc/rsyslog.d/listen.conf files
+    copy:
+      src: "{{ item }}"
+      dest: /etc/rsyslog.d/listen.conf
+      mode: '0640'
+      owner: root
+      group: root
+    with_items:
+      - /etc/ansible/templates/rhel7/listen.conf
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+
+  - name: Copy fix_rsyslog_perms_owners.sh to /root/scripts
+    copy:
+      src: "{{ item }}"
+      dest: /root/scripts
+      mode: '0750'
+      owner: root
+      group: root
+    with_items:
+      - /etc/ansible/files/scripts/fix_rsyslog_perms_owners.sh
+
+  - name: Fix rsyslog permissions and ownerships
+    shell: /root/scripts/fix_rsyslog_perms_owners.sh
+    register: result
+    failed_when:
+      - result.rc != 0
+
+  - debug: var=result.stdout_lines
+
+  - name: Start rhel6 service rsyslog, if not started
+    service:
+      name: rsyslog
+      state: started
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+
+  - name: Start rhel7 service rsyslog, if not started
+    systemd:
+      name: rsyslog
+      state: started
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"

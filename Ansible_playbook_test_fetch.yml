@@ -1,0 +1,14 @@
+---
+- hosts: chs-l-ebdl-01
+  remote_user: root
+
+  tasks:
+  - name: Find my results file
+    shell: ls /usr/local/etc/stig/runscap/ | grep results-V
+    register: results
+
+  - name: Fetch results file
+    fetch:
+      src: "/usr/local/etc/stig/runscap/{{ results.stdout }}"
+      dest: /opt/common/STIG/Results/
+      flat: yes

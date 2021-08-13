@@ -1,0 +1,26 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Pre-checks
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+      owner: root
+      group: root
+    with_items:
+      - /opt/scripts
+  - name: Copy needed files
+    copy:
+      src: /etc/ansible/files/scripts/chage.sh
+      dest: /opt/scripts
+      mode: 0700
+  - name: Running script
+    shell: /opt/scripts/chage.sh
+    register: result
+    failed_when:
+      - result.rc != 0
+  - debug: var=result.stdout_lines
+

@@ -1,0 +1,10 @@
+---
+- hosts: chs-l-rhel7test
+  remote_user: root
+
+  tasks:
+  - name: Fetch Config file
+    fetch:
+      src: /etc/krb5.conf
+      dest: /home/raddog.ma/Configs/kerberos/rh7/{{ ansible_hostname }}_kerberos.conf
+      flat: yes

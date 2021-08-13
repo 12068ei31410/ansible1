@@ -1,0 +1,10 @@
+---
+- hosts: all
+  remote_user: root
+  gather_facts: no
+
+  tasks:
+  - name: adhoc command 1
+    shell: /opt/McAfee/cma/bin/cmdagent -i | egrep '(^Version|^GUID)'
+    register: stuff
+  - debug: var=stuff.stdout_lines

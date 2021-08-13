@@ -1,0 +1,77 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Create/Ensure Dir structure
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0700'
+      owner: root
+      group: root
+    with_items:
+      - /home/ansible
+  - name: Copy SCC rhel6 files
+    copy:
+      src: "{{ item }}"
+      dest: /home/ansible
+    with_items:
+      - /home/morganj/scc-5.2.rhel6.x86_64.rpm
+      - /home/morganj/U_RedHat_6_V1R24_STIG_SCAP_1-2_Benchmark.xml
+    when:
+      - ansible_facts['distribution']  == "RedHat" or ansible_facts['distribution']  == "CentOS"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Install rpm rhel6
+    yum:
+      name: /home/ansible/scc-5.2.rhel6.x86_64.rpm
+      state: present
+    when:
+      - ansible_facts['distribution']  == "RedHat" or ansible_facts['distribution']  == "CentOS"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Copy SCC rhel7 files
+    copy:
+      src: "{{ item }}"
+      dest: /home/ansible
+    with_items:
+      - /opt/scc/options.xml
+      - /home/morganj/scc-5.2.rhel7.x86_64.rpm
+      - /home/morganj/U_Red_Hat_Enterprise_Linux_7_V2R4_STIG_SCAP_1-2_Benchmark.xml
+    when:
+      - ansible_facts['distribution']  == "RedHat" or ansible_facts['distribution']  == "CentOS"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Install rpm rhel7
+    yum:
+      name: /home/ansible/scc-5.2.rhel7.x86_64.rpm
+      state: present
+    when:
+      - ansible_facts['distribution']  == "RedHat" or ansible_facts['distribution']  == "CentOS"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Copy SCC options.xml file
+    copy:
+      src: "{{ item }}"
+      dest: /opt/scc
+    with_items:
+      - /opt/scc/options.xml
+  - name: Copy STIG benchmarks
+    copy:
+      src: "{{ item }}"
+      dest: /opt/scc/Resources/Content/SCAP12_Content
+    with_items:
+      - /opt/scc/Resources/Content/SCAP12_Content/U_RedHat_6_V1R24_STIG_SCAP_1-2_Benchmark.xml
+      - /opt/scc/Resources/Content/SCAP12_Content/U_Red_Hat_Enterprise_Linux_7_V2R4_STIG_SCAP_1-2_Benchmark.xml
+
+  - name: Clean up files
+    file:
+      path: /opt/scc/Results
+      state: absent
+  - name: Run SCC
+    shell: /opt/scc/cscc
+  - name: Find my results file
+    shell: ls -lrt /opt/scc/Results | grep XCCDF | head -1 | awk '{print $9}'
+    register: xccdf
+  - name: Fetch results files
+    fetch:
+      src: "/opt/scc/Results/{{ xccdf.stdout }}"
+      dest: /home/ansible/scc/
+      flat: yes

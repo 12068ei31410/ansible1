@@ -1,0 +1,35 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Modifying Files
+    lineinfile:
+      path: "{{ item }}"
+      line: session    required     pam_tty_audit.so enable=*
+    with_items:
+      - /etc/pam.d/sudo
+      - /etc/pam.d/sudo-i
+      - /etc/pam.d/su
+      - /etc/pam.d/su-l
+    register: filemod
+
+  - name: Restart services if changes were made
+    block:
+      - name: Initiate systemd reload
+        systemd:
+          daemon_reload: yes
+        when:
+          - ansible_facts['distribution']  == "RedHat"
+          - ansible_facts['distribution_major_version'] == "7"
+      - name: Audit service reload and restart
+        service:
+          name: auditd
+          state: "{{ item }}"
+        with_items:
+          - reloaded
+          - restarted
+        when:
+          - ansible_facts['distribution']  == "RedHat"
+          - ansible_facts['distribution_major_version'] == "6"
+    when: filemod is changed

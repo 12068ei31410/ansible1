@@ -1,0 +1,182 @@
+---
+- hosts: all
+  remote_user: root
+  vars:
+    sccm_pw: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+<hash>
+  tasks:
+  - name: Create/Ensure Dir structure
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0750'
+      owner: root
+      group: root
+    with_items:
+      - /home/ansible
+      - /var/ace
+      - /etc/sudoers.d
+  - name: Updating sssd.conf
+    copy:
+      src: /etc/ansible/templates/sssd.conf
+      dest: /etc/sssd/sssd.conf
+      mode: 0600
+      owner: root
+      group: root
+  - name: Updating krb5.conf
+    copy:
+      src: /etc/ansible/templates/krb5.conf
+      dest: /etc/krb5.conf
+      mode: 0644
+      owner: root
+      group: root
+  - name: Updating password-auth RHEL6
+    copy:
+      src: /etc/ansible/templates/rhel6/password-auth
+      dest: /etc/pam.d/password-auth
+      mode: 0644
+      owner: root
+      group: root
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Updating password-auth RHEL7
+    copy:
+      src: /etc/ansible/templates/rhel7/password-auth
+      dest: /etc/pam.d/password-auth
+      mode: 0644
+      owner: root
+      group: root
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Updating system-auth RHEL6
+    copy:
+      src: /etc/ansible/templates/rhel6/system-auth
+      dest: /etc/pam.d/system-auth
+      mode: 0644
+      owner: root
+      group: root
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Updating system-auth RHEL7
+    copy:
+      src: /etc/ansible/templates/rhel7/system-auth
+      dest: /etc/pam.d/system-auth
+      mode: 0644
+      owner: root
+      group: root
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Updating sudoers
+    copy:
+      src: /etc/ansible/templates/lant-coreadmins
+      dest: /etc/sudoers.d/lant-coreadmins
+      mode: 0644
+      owner: root
+      group: root
+  - name: Updating sshd_config RHEL6
+    copy:
+      src: /etc/ansible/templates/rhel6/sshd_config
+      dest: /etc/ssh/sshd_config
+      mode: 0600
+      owner: root
+      group: root
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Updating sshd_config RHEL7
+    copy:
+      src: /etc/ansible/templates/rhel7/sshd_config
+      dest: /etc/ssh/sshd_config
+      mode: 0600
+      owner: root
+      group: root
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Copy /var/ace files
+    copy:
+      src: "{{ item }}"
+      dest: /var/ace
+    with_items:
+      - /etc/ansible/templates/sdopts.rec
+      - /etc/ansible/templates/sdconf.rec
+  - name: Copy options file
+    copy:
+      src: /etc/ansible/templates/installoptions.conf
+      dest: /root/installoptions.conf
+  - name: Make sure required packages are installed...
+    yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - policycoreutils-python
+      - dconf
+      - selinux-policy-devel
+      - policycoreutils-devel
+      - adcli
+      - krb5-workstation
+      - sssd
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Get the RSA installer
+    copy:
+      src: /etc/ansible/templates/RSA-PAM-installer.tar.gz
+      dest: /root
+  - name: Unpack installer
+    unarchive:
+      src: /root/RSA-PAM-installer.tar.gz
+      dest: /root
+      remote_src: yes
+  - name: Run PAM agent installer
+    shell: /root/PAM-Agent_v8.0.0.195.11_23_17_04_55_23/install_pam.sh -s < /root/installoptions.conf
+  - name: Register primary interface IP
+    shell: grep IPADDR /etc/sysconfig/network-scripts/ifcfg-* | grep -v "127.0.0.1" | awk -F= '{print $2}'| head -1
+    register: myip
+  - name: Updating /var/ace/sdopts.rec with primary interface IP
+    shell: echo "CLIENT_IP={{ myip.stdout }}" > /var/ace/sdopts.rec
+#  - name: Join domain
+#    shell: echo -n "{{ sccm_pw }}" | adcli join <site>.mil -U sccm.adjoin.svc --stdin-password
+  - name: Open ports RHEL6
+    iptables:
+      chain: INPUT
+      destination_port: 5500
+      jump: ACCEPT
+      protocol: udp
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: Open ports RHEL7
+    shell: firewall-cmd --zone=public --permanent --add-port=5500/udp
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: restart sssd and sshd RHEL6
+    service:
+      name: "{{ item }}"
+      state: restarted
+    with_items:
+      - sssd
+      - sshd
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "6"
+  - name: restart sssd and sshd RHEL7
+    systemd:
+      name: "{{ item }}"
+      state: restarted
+    with_items:
+      - sssd
+      - sshd
+    when:
+      - ansible_facts['distribution']  == "RedHat"
+      - ansible_facts['distribution_major_version'] == "7"
+  - name: Register RSA reminder
+    shell: echo "Register the system with the RSA Management - https://<site>.mil"
+    register: echo_rsa
+  - debug: var=echo_rsa.stdout_lines

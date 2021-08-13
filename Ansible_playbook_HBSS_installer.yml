@@ -1,0 +1,40 @@
+##HBSS install/update
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+  - name: Create/Ensure Dir structure
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0700'
+      owner: root
+      group: root
+    with_items:
+      - /home/ansible
+  - name: scp HBSS update script
+    copy:
+      src: /etc/ansible/files/HBSS/install-linux-CHS-L-EPO510-566-232.sh
+      dest: /home/ansible
+  - name: Check if McAfee is installed
+    stat:
+      path: /opt/McAfee/cma/bin/cmdagent
+    register: file_exists
+  - name: Update installer perms
+    file:
+      path: /home/ansible/install-linux-CHS-L-EPO510-566-232.sh
+      mode: '0700'
+  - name: Upgrade agent
+    command: /home/ansible/install-linux-CHS-L-EPO510-566-232.sh -u -r
+    ignore_errors: yes
+    when: file_exists.stat.exists == true
+  - name: Install agent
+    command: /home/ansible/install-linux-CHS-L-EPO510-566-232.sh -i -r
+    when: file_exists.stat.exists == false
+  - name: Check if McAfee Agent is installed
+    yum:
+      name: MFEcma-5.6.6-232.x86_64
+      state: present
+  - name: Send update to HBSS
+    shell: sleep 10; /opt/McAfee/cma/bin/cmdagent -p
